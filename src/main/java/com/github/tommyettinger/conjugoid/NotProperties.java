@@ -19,7 +19,6 @@ package com.github.tommyettinger.conjugoid;
 
 import com.github.tommyettinger.digital.Base;
 import com.github.tommyettinger.ds.ObjectObjectOrderedMap;
-import regexodus.Category;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -168,8 +167,7 @@ public final class NotProperties {
 					}
 					break;
 				}
-				// if (Character.isWhitespace(nextChar)) { <-- not supported by GWT; replaced with RegExodus.
-				if (Category.Space.contains(nextChar)) {
+				if (nextChar == ' ' || nextChar == '\t' || nextChar == '\f') {
 					if (mode == CONTINUE) {
 						mode = IGNORE;
 					}
