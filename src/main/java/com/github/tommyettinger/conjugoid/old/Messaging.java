@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.tommyettinger.conjugoid;
+package com.github.tommyettinger.conjugoid.old;
 
 import regexodus.*;
 
