@@ -18,7 +18,7 @@
 package com.github.tommyettinger.conjugoid;
 
 import com.github.tommyettinger.digital.Base;
-import com.github.tommyettinger.ds.ObjectObjectOrderedMap;
+import com.github.tommyettinger.ds.ObjectObjectMap;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -27,9 +27,14 @@ import java.io.Writer;
 import java.util.Date;
 import java.util.Map.Entry;
 
-/** {@code NotProperties} is a helper class that allows you to load and store key/value pairs of an
- * {@code ObjectObjectOrderedMap<String,String>} with the same line-oriented syntax supported by {@code java.util.Properties},
- * except unlike a .properties file, you can use Unicode text here. Hallelujah! */
+/**
+ *  {@code NotProperties} is a helper class that allows you to load and store key/value pairs of an
+ * {@code ObjectObjectMap<String,String>} with the same line-oriented syntax supported by
+ * {@code java.util.Properties}, except unlike a .properties file, you can use Unicode text here. Hallelujah!
+ * If you pass an {@link com.github.tommyettinger.ds.ObjectObjectOrderedMap} to {@link #load(ObjectObjectMap, Reader)}
+ * or {@link #store(ObjectObjectMap, Writer, String)}, this will also preserve the order of keys in an ObjectList, in
+ * case you need that.
+ */
 public final class NotProperties {
 
 	private static final int NONE = 0, SLASH = 1, UNICODE = 2, CONTINUE = 3, KEY_DONE = 4, IGNORE = 5;
@@ -39,8 +44,8 @@ public final class NotProperties {
 	private NotProperties() {
 	}
 
-	/** Adds to the specified {@code ObjectObjectOrderedMap} the key/value pairs loaded from the {@code Reader} in a simple line-oriented format
-	 * compatible with <code>java.util.Properties</code>, but Unicode-capable and order-preserving.
+	/** Adds to the specified {@code ObjectObjectMap} the key/value pairs loaded from the {@code Reader} in a simple line-oriented format
+	 * compatible with {@code java.util.Properties}, but Unicode-capable and order-preserving.
 	 * <p>
 	 * The input stream remains open after this method returns.
 	 *
@@ -48,7 +53,7 @@ public final class NotProperties {
 	 * @param reader the input character stream reader.
 	 * @throws IOException if an error occurred when reading from the input stream.
 	 * @throws IllegalArgumentException if a malformed Unicode escape appears in the input. */
-	public static void load (ObjectObjectOrderedMap<String, String> properties, Reader reader) throws IOException {
+	public static void load (ObjectObjectMap<String, String> properties, Reader reader) throws IOException {
 		if (properties == null) throw new NullPointerException("properties cannot be null");
 		if (reader == null) throw new NullPointerException("reader cannot be null");
 		int mode = NONE, unicode = 0, count = 0;
@@ -158,7 +163,6 @@ public final class NotProperties {
 					}
 					mode = SLASH;
 					continue;
-				case ':':
 				case '=':
 					if (keyLength == -1) { // if parsing the key
 						mode = NONE;
@@ -208,27 +212,28 @@ public final class NotProperties {
 		}
 	}
 
-	/** Writes the key/value pairs of the specified <code>ObjectObjectOrderedMap</code> to the output character stream in a simple line-oriented
-	 * format compatible with <code>java.util.Properties</code>, but Unicode-capable and order-preserving.
+	/** Writes the key/value pairs of the specified {@code ObjectObjectMap} to the output character stream in a
+	 *  simple line-oriented format compatible with {@code java.util.Properties}, but Unicode-capable and order-preserving.
 	 * <p>
-	 * Every entry in the <code>ObjectObjectOrderedMap</code> is written out, one per line. For each entry the key string is written, then an
-	 * ASCII <code>=</code>, then the associated element string. For the key, all space characters are written with a preceding
-	 * <code>\</code> character. For the element, leading space characters, but not embedded or trailing space characters, are
-	 * written with a preceding <code>\</code> character. The key and element characters <code>#</code>, <code>!</code>,
-	 * <code>=</code>, and <code>:</code> are written with a preceding backslash to ensure that they are properly loaded.
+	 * Every entry in the {@code java.util.Properties} is written out, one per line. For each entry the key string is written, then an
+	 * ASCII {@code =}, then the associated element string. For the key, all space characters are written with a preceding
+	 * {@code \} character. For the element, leading space characters, but not embedded or trailing space characters, are
+	 * written with a preceding {@code \} character.
+	 * The key and element character {@code =} is written with a preceding backslash to ensure that it is properly
+	 * loaded, as are the characters {@code #} and {@code !} when they start a line.
 	 * <p>
 	 * After the entries have been written, the output stream is flushed. The output stream remains open after this method returns.
 	 *
-	 * @param properties the {@code ObjectObjectOrderedMap}.
+	 * @param properties the {@code ObjectObjectMap}.
 	 * @param writer an output character stream writer.
 	 * @param comment an optional comment to be written, or null.
-	 * @exception IOException if writing this property list to the specified output stream throws an <tt>IOException</tt>.
-	 * @exception NullPointerException if <code>writer</code> is null. */
-	public static void store (ObjectObjectOrderedMap<String, String> properties, Writer writer, String comment) throws IOException {
-		storeImpl(properties, writer, comment, false);
+	 * @exception IOException if writing this property list to the specified output stream throws an {@code IOException}.
+	 * @exception NullPointerException if {@code writer} is null. */
+	public static void store (ObjectObjectMap<String, String> properties, Writer writer, String comment) throws IOException {
+		storeImpl(properties, writer, comment);
 	}
 
-	private static void storeImpl (ObjectObjectOrderedMap<String, String> properties, Writer writer, String comment, boolean escapeUnicode)
+	private static void storeImpl (ObjectObjectMap<String, String> properties, Writer writer, String comment)
 		throws IOException {
 		if (comment != null) {
 			writeComment(writer, comment);
@@ -239,9 +244,9 @@ public final class NotProperties {
 
 		StringBuilder sb = new StringBuilder(200);
 		for (Entry<String, String> entry : properties.entrySet()) {
-			dumpString(sb, entry.getKey(), true, escapeUnicode);
+			dumpString(sb, entry.getKey(), true);
 			sb.append('=');
-			dumpString(sb, entry.getValue(), false, escapeUnicode);
+			dumpString(sb, entry.getValue(), false);
 			writer.write(LINE_SEPARATOR);
 			writer.write(sb.toString());
 			sb.setLength(0);
@@ -249,7 +254,7 @@ public final class NotProperties {
 		writer.flush();
 	}
 
-	private static void dumpString (StringBuilder outBuffer, String string, boolean escapeSpace, boolean escapeUnicode) {
+	private static void dumpString (StringBuilder outBuffer, String string, boolean isKey) {
 		int len = string.length();
 		for (int i = 0; i < len; i++) {
 			char ch = string.charAt(i);
@@ -259,39 +264,42 @@ public final class NotProperties {
 				continue;
 			}
 			switch (ch) {
-			case ' ':
-				if (i == 0 || escapeSpace) {
-					outBuffer.append("\\ ");
-				} else {
+				case ' ':
+					if (i == 0 || isKey) {
+						outBuffer.append("\\ ");
+					} else {
+						outBuffer.append(ch);
+					}
+					break;
+				case '\n':
+					outBuffer.append("\\n");
+					break;
+				case '\r':
+					outBuffer.append("\\r");
+					break;
+				case '\t':
+					outBuffer.append("\\t");
+					break;
+				case '\f':
+					outBuffer.append("\\f");
+					break;
+				case '#': // Fall through
+				case '!':
+                    if (i == 0 && isKey)
+                        outBuffer.append('\\');
 					outBuffer.append(ch);
-				}
-				break;
-			case '\n':
-				outBuffer.append("\\n");
-				break;
-			case '\r':
-				outBuffer.append("\\r");
-				break;
-			case '\t':
-				outBuffer.append("\\t");
-				break;
-			case '\f':
-				outBuffer.append("\\f");
-				break;
-			case '=': // Fall through
-			case ':': // Fall through
-			case '#': // Fall through
-			case '!':
-				outBuffer.append('\\').append(ch);
-				break;
-			default:
-				if ((ch < 32) || (escapeUnicode && (ch > 126))) {
-					outBuffer.append("\\u");
-					Base.BASE16.appendUnsigned(outBuffer, ch);
-				} else {
-					outBuffer.append(ch);
-				}
-				break;
+                    break;
+				case '=':
+					outBuffer.append('\\').append(ch);
+					break;
+				default:
+					if ((ch < 32)) {
+						outBuffer.append("\\u");
+						Base.BASE16.appendUnsigned(outBuffer, ch);
+					} else {
+						outBuffer.append(ch);
+					}
+					break;
 			}
 		}
 	}
