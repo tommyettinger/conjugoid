@@ -25,6 +25,7 @@ import com.github.tommyettinger.ds.ObjectOrderedSet;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
@@ -84,8 +85,9 @@ public class I18NBundle {
 	/** The properties for this bundle. */
 	private ObjectObjectOrderedMap<String, String> properties;
 
-	/** The formatter used for argument replacement. */
-	private TextFormatter formatter;
+	private MessageFormat messageFormat;
+	private final StringBuilder sb = new StringBuilder();
+
 
 	/** Returns the flag indicating whether to throw a {@link MissingResourceException} from the {@link #get(String) get(key)}
 	 * method if no string for the given key can be found. If this flag is {@code false} the missing key surrounded by {@code ???}
@@ -387,7 +389,7 @@ public class I18NBundle {
 	 */
 	private void setLocale (Locale locale) {
 		this.locale = locale;
-		this.formatter = new TextFormatter(locale);
+		this.messageFormat = new MessageFormat("", locale);
 	}
 
 	/** Gets a string for the given key from this bundle or one of its parents.
@@ -429,7 +431,50 @@ public class I18NBundle {
 	 * @exception MissingResourceException if no string for the given key can be found
 	 * @return the string for the given key formatted with the given arguments */
 	public String format (String key, Object... args) {
-		return formatter.format(get(key), args);
+		messageFormat.applyPattern(replaceEscapeChars(get(key)));
+		return messageFormat.format(args);
+	}
+
+
+	// Below is roughly equivalent to:
+	// pattern.replaceAll("'|(\\{+)\\1", "'$1'");
+	// The approach below doesn't allocate if there was no match, so it is better here.
+	/**
+	 * Handles the different escape character syntax for messages here vs. those in MessageFormat. That is, here a left
+	 * curly bracket must be doubled to have its intended meaning, and single quotes can be left as-is. This has a
+	 * useful optimization in that it doesn't create a new String if nothing would change.
+	 * @param pattern a message formatted using the rules of this class (repeat left curly bracket)
+	 * @return a message formatted using MessageFormat's rules (curly braces in single quotes, single quotes doubled)
+	 */
+	private String replaceEscapeChars (String pattern) {
+		sb.setLength(0);
+		boolean changed = false;
+		int len = pattern.length();
+		for (int i = 0; i < len; i++) {
+			char ch = pattern.charAt(i);
+			if (ch == '\'') {
+				changed = true;
+				sb.append("''");
+			} else if (ch == '{') {
+				int j = i + 1;
+				while (j < len && pattern.charAt(j) == '{')
+					j++;
+				int escaped = (j - i) / 2;
+				if (escaped > 0) {
+					changed = true;
+					sb.append('\'');
+					do {
+						sb.append('{');
+					} while ((--escaped) > 0);
+					sb.append('\'');
+				}
+				if ((j - i & 1) != 0) sb.append('{');
+				i = j - 1;
+			} else {
+				sb.append(ch);
+			}
+		}
+		return changed ? sb.toString() : pattern;
 	}
 
 	/** Sets the value of all localized strings to String placeholder so hardcoded, unlocalized values can be easily spotted. The
