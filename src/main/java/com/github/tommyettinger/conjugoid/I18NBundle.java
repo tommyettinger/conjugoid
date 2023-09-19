@@ -323,7 +323,7 @@ public class I18NBundle {
 		Reader reader = null;
 		try {
 			FileHandle fileHandle = toFileHandle(baseFileHandle, targetLocale);
-			if (checkFileExistence(fileHandle)) {
+			if (BetaTools.fileExists(fileHandle)) {
 				// Instantiate the bundle
 				bundle = new I18NBundle();
 
@@ -343,17 +343,6 @@ public class I18NBundle {
 		return bundle;
 	}
 
-	// On Android this is much faster than fh.exists(), see https://github.com/libgdx/libgdx/issues/2342
-	// Also this should fix a weird problem on iOS, see https://github.com/libgdx/libgdx/issues/2345
-	private static boolean checkFileExistence (FileHandle fh) {
-		try {
-			fh.read().close();
-			return true;
-		} catch (Exception e) {
-			return false;
-		}
-	}
-
 	/** Load the properties from the specified reader.
 	 * 
 	 * @param reader the reader
@@ -367,14 +356,12 @@ public class I18NBundle {
 	 * 
 	 * <p>
 	 * This implementation returns the <code>baseFileHandle</code>'s sibling with following value:
-	 * 
-	 * <pre>
-	 * baseFileHandle.name() + &quot;_&quot; + language + &quot;_&quot; + country + &quot;_&quot; + variant + &quot;.properties&quot;
-	 * </pre>
-	 * 
+	 * <br>
+	 * {@code baseFileHandle.name() + "_" + language + "_" + country + "_" + variant + ".properties"}
+	 * <br>
 	 * where <code>language</code>, <code>country</code> and <code>variant</code> are the language, country and variant values of
 	 * <code>locale</code>, respectively. Final component values that are empty Strings are omitted along with the preceding '_'.
-	 * If all of the values are empty strings, then <code>baseFileHandle.name()</code> is returned with ".properties" appended.
+	 * If all the values are empty strings, then <code>baseFileHandle.name()</code> is returned with ".properties" appended.
 	 * 
 	 * @param baseFileHandle the file handle to the base of the bundle
 	 * @param locale the locale for which a resource bundle should be loaded
