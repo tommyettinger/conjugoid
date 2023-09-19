@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
 
-/** A {@code I18NBundle} provides {@code Locale}-specific resources loaded from property files. A bundle contains a number of
+/** A {@code Phrasebook} provides {@code Locale}-specific resources loaded from property files. A bundle contains a number of
  * named resources, whose names and values are {@code Strings}. A bundle may have a parent bundle, and when a resource is not
  * found in a bundle, the parent bundle is searched for the resource. If the fallback mechanism reaches the base bundle and still
  * can't find the resource it throws a {@code MissingResourceException}.
@@ -39,9 +39,9 @@ import java.util.MissingResourceException;
  * <li>All bundles for the same group of resources share a common base bundle. This base bundle acts as the root and is the last
  * fallback in case none of its children was able to respond to a request.</li>
  * <li>The first level contains changes between different languages. Only the differences between a language and the language of
- * the base bundle need to be handled by a language-specific {@code I18NBundle}.</li>
+ * the base bundle need to be handled by a language-specific {@code Phrasebook}.</li>
  * <li>The second level contains changes between different countries that use the same language. Only the differences between a
- * country and the country of the language bundle need to be handled by a country-specific {@code I18NBundle}.</li>
+ * country and the country of the language bundle need to be handled by a country-specific {@code Phrasebook}.</li>
  * <li>The third level contains changes that don't have a geographic reason (e.g. changes that where made at some point in time
  * like {@code PREEURO} where the currency of come countries changed. The country bundle would return the current currency (Euro)
  * and the {@code PREEURO} variant bundle would return the old currency (e.g. DM for Germany).</li>
@@ -67,7 +67,7 @@ import java.util.MissingResourceException;
  * 
  * @author davebaol */
 @SuppressWarnings("Java8MapApi")
-public class I18NBundle {
+public class Phrasebook {
 
 	private static final String DEFAULT_ENCODING = "UTF-8";
 
@@ -76,8 +76,8 @@ public class I18NBundle {
 
 	private static boolean exceptionOnMissingKey = true;
 
-	/** The parent of this {@code I18NBundle} that is used if this bundle doesn't include the requested resource. */
-	private I18NBundle parent;
+	/** The parent of this {@code Phrasebook} that is used if this bundle doesn't include the requested resource. */
+	private Phrasebook parent;
 
 	/** The locale for this bundle. */
 	private Locale locale;
@@ -109,7 +109,7 @@ public class I18NBundle {
 	 * @exception NullPointerException if {@code baseFileHandle} is {@code null}
 	 * @exception MissingResourceException if no bundle for the specified base file handle can be found
 	 * @return a bundle for the given base file handle and the default locale */
-	public static I18NBundle createBundle (FileHandle baseFileHandle) {
+	public static Phrasebook createBundle (FileHandle baseFileHandle) {
 		return createBundleImpl(baseFileHandle, Locale.getDefault(), DEFAULT_ENCODING);
 	}
 
@@ -121,7 +121,7 @@ public class I18NBundle {
 	 * @return a bundle for the given base file handle and locale
 	 * @exception NullPointerException if {@code baseFileHandle} or {@code locale} is {@code null}
 	 * @exception MissingResourceException if no bundle for the specified base file handle can be found */
-	public static I18NBundle createBundle (FileHandle baseFileHandle, Locale locale) {
+	public static Phrasebook createBundle (FileHandle baseFileHandle, Locale locale) {
 		return createBundleImpl(baseFileHandle, locale, DEFAULT_ENCODING);
 	}
 
@@ -132,7 +132,7 @@ public class I18NBundle {
 	 * @return a bundle for the given base file handle and locale
 	 * @exception NullPointerException if {@code baseFileHandle} or {@code encoding} is {@code null}
 	 * @exception MissingResourceException if no bundle for the specified base file handle can be found */
-	public static I18NBundle createBundle (FileHandle baseFileHandle, String encoding) {
+	public static Phrasebook createBundle (FileHandle baseFileHandle, String encoding) {
 		return createBundleImpl(baseFileHandle, Locale.getDefault(), encoding);
 	}
 
@@ -145,15 +145,15 @@ public class I18NBundle {
 	 * @exception NullPointerException if {@code baseFileHandle}, {@code locale} or {@code encoding} is
 	 *               {@code null}
 	 * @exception MissingResourceException if no bundle for the specified base file handle can be found */
-	public static I18NBundle createBundle (FileHandle baseFileHandle, Locale locale, String encoding) {
+	public static Phrasebook createBundle (FileHandle baseFileHandle, Locale locale, String encoding) {
 		return createBundleImpl(baseFileHandle, locale, encoding);
 	}
 
-	private static I18NBundle createBundleImpl (FileHandle baseFileHandle, Locale locale, String encoding) {
+	private static Phrasebook createBundleImpl (FileHandle baseFileHandle, Locale locale, String encoding) {
 		if (baseFileHandle == null || locale == null || encoding == null) throw new NullPointerException();
 
-		I18NBundle bundle;
-		I18NBundle baseBundle = null;
+		Phrasebook bundle;
+		Phrasebook baseBundle = null;
 		Locale targetLocale = locale;
 		do {
 			// Create the candidate locales
@@ -280,10 +280,10 @@ public class I18NBundle {
 		return locale.equals(defaultLocale) ? null : defaultLocale;
 	}
 
-	private static I18NBundle loadBundleChain (FileHandle baseFileHandle, String encoding, List<Locale> candidateLocales,
-		int candidateIndex, I18NBundle baseBundle) {
+	private static Phrasebook loadBundleChain (FileHandle baseFileHandle, String encoding, List<Locale> candidateLocales,
+											   int candidateIndex, Phrasebook baseBundle) {
 		Locale targetLocale = candidateLocales.get(candidateIndex);
-		I18NBundle parent = null;
+		Phrasebook parent = null;
 		if (candidateIndex != candidateLocales.size() - 1) {
 			// Load recursively the parent having the next candidate locale
 			parent = loadBundleChain(baseFileHandle, encoding, candidateLocales, candidateIndex + 1, baseBundle);
@@ -292,7 +292,7 @@ public class I18NBundle {
 		}
 
 		// Load the bundle
-		I18NBundle bundle = loadBundle(baseFileHandle, encoding, targetLocale);
+		Phrasebook bundle = loadBundle(baseFileHandle, encoding, targetLocale);
 		if (bundle != null) {
 			bundle.parent = parent;
 			return bundle;
@@ -302,14 +302,14 @@ public class I18NBundle {
 	}
 
 	// Tries to load the bundle for the given locale.
-	private static I18NBundle loadBundle (FileHandle baseFileHandle, String encoding, Locale targetLocale) {
-		I18NBundle bundle = null;
+	private static Phrasebook loadBundle (FileHandle baseFileHandle, String encoding, Locale targetLocale) {
+		Phrasebook bundle = null;
 		Reader reader = null;
 		try {
 			FileHandle fileHandle = toFileHandle(baseFileHandle, targetLocale);
 			if (BetaTools.fileExists(fileHandle)) {
 				// Instantiate the bundle
-				bundle = new I18NBundle();
+				bundle = new Phrasebook();
 
 				// Load bundle properties from the stream with the specified encoding
 				reader = fileHandle.reader(encoding);
@@ -478,7 +478,7 @@ public class I18NBundle {
 	}
 
 	/** Sets the value of all localized strings to String placeholder so hardcoded, unlocalized values can be easily spotted. The
-	 * I18NBundle won't be able to reset values after calling debug and should only be using during testing.
+	 * Phrasebook won't be able to reset values after calling debug and should only be using during testing.
 	 * 
 	 * @param placeholder the String that will replace every value in the loaded properties
 	 */

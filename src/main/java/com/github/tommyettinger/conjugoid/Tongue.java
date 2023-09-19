@@ -15,7 +15,7 @@ public class Tongue {
     public final ObjectObjectMap<String, Pronoun> pronouns = new ObjectObjectMap<>(16);
 
     public Tongue() {
-        this(new Locale("dog")); // woof, woof! let's see if this works!
+        this(new Locale("en__dog")); // woof, woof! let's see if this works!
     }
 
     public Tongue(Locale locale) {
@@ -30,21 +30,22 @@ public class Tongue {
     public static class Pronoun {
         public final ObjectObjectOrderedMap<String, ObjToSameFunction<String>> substitutions = new ObjectObjectOrderedMap<>(32);
         public final String tag;
+        public Pronoun addSubstitutions(String... args){
+            substitutions.ensureCapacity(substitutions.size() + (args.length >>> 1));
+            for (int i = 1; i < args.length; i += 2) {
+                try {
+                    final String fs = args[i];
+                    substitutions.put(args[i - 1], s -> fs);
+                } catch (ClassCastException ignored) {
+                }
+            }
+            return this;
+        }
         public Pronoun() {
             this("t3s"); // they/them, 3rd-person, singular
-            substitutions.put("i", s -> "they");
-            substitutions.put("me", s -> "them");
-            substitutions.put("my", s -> "their");
-            substitutions.put("mine", s -> "theirs");
-            substitutions.put("myself", s -> "themself");
-            substitutions.put("s", s -> "");
-            substitutions.put("es", s -> "");
-            substitutions.put("sss", s -> "y");
-            substitutions.put("usi", s -> "us");
-            substitutions.put("fves", s -> "f");
-            substitutions.put("$", s -> "");
-            substitutions.put("$$", s -> "");
-            substitutions.put("$$$", s -> "y");
+            addSubstitutions("i", "they", "me", "them", "my", "their", "mine", "theirs", "myself", "themself",
+                    "s", "", "es", "", "sss", "y", "usi", "us", "fves", "f",
+                    "$", "", "$$", "", "$$$", "y");
             substitutions.put("name", s -> s);
             substitutions.put("name_s", s -> s.isEmpty() ? "" : s.endsWith("s") ? s + '\'' : s + "'s");
             substitutions.put("direct", s -> s);
