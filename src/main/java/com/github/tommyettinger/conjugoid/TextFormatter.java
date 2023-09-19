@@ -41,6 +41,15 @@ public class TextFormatter {
 		this(locale);
 	}
 
+	/**
+	 * Changes the Locale used by the internal {@link MessageFormat}.
+	 * @param locale any Locale instance (a null value will be ignored)
+	 */
+	public void setLocale(Locale locale) {
+		if(locale != null)
+			messageFormat.setLocale(locale);
+	}
+
 	/** Formats the given {@code pattern} replacing its placeholders with the actual arguments specified by {@code args}.
 	 * <p>
 	 * If this {@code TextFormatter} has been instantiated with {@link #TextFormatter(Locale, boolean) TextFormatter(locale, true)}
@@ -92,7 +101,7 @@ public class TextFormatter {
 					} while ((--escaped) > 0);
 					sb.append('\'');
 				}
-				if ((j - i) % 2 != 0) sb.append('{');
+				if ((j - i & 1) != 0) sb.append('{');
 				i = j - 1;
 			} else {
 				sb.append(ch);

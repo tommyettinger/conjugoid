@@ -20,7 +20,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.StreamUtils;
 import com.github.tommyettinger.ds.ObjectList;
-import com.github.tommyettinger.ds.ObjectObjectMap;
+import com.github.tommyettinger.ds.ObjectObjectOrderedMap;
 import com.github.tommyettinger.ds.ObjectOrderedSet;
 
 import java.io.IOException;
@@ -65,6 +65,7 @@ import java.util.MissingResourceException;
  * @see NotProperties
  * 
  * @author davebaol */
+@SuppressWarnings("Java8MapApi")
 public class I18NBundle {
 
 	private static final String DEFAULT_ENCODING = "UTF-8";
@@ -72,7 +73,6 @@ public class I18NBundle {
 	// Locale.ROOT does not exist in Android API level 8
 	private static final Locale ROOT_LOCALE = new Locale("", "", "");
 
-	private static boolean simpleFormatter = false;
 	private static boolean exceptionOnMissingKey = true;
 
 	/** The parent of this {@code I18NBundle} that is used if this bundle doesn't include the requested resource. */
@@ -82,23 +82,10 @@ public class I18NBundle {
 	private Locale locale;
 
 	/** The properties for this bundle. */
-	private ObjectObjectMap<String, String> properties;
+	private ObjectObjectOrderedMap<String, String> properties;
 
 	/** The formatter used for argument replacement. */
 	private TextFormatter formatter;
-
-	/** Returns the flag indicating whether to use the simplified message pattern syntax (default is false). This flag is always
-	 * assumed to be true on GWT backend. */
-	public static boolean getSimpleFormatter () {
-		return simpleFormatter;
-	}
-
-	/** Sets the flag indicating whether to use the simplified message pattern. The flag must be set before calling the factory
-	 * methods {@code createBundle}. Notice that this method has no effect on the GWT backend where it's always assumed to be
-	 * true. */
-	public static void setSimpleFormatter (boolean enabled) {
-		simpleFormatter = enabled;
-	}
 
 	/** Returns the flag indicating whether to throw a {@link MissingResourceException} from the {@link #get(String) get(key)}
 	 * method if no string for the given key can be found. If this flag is {@code false} the missing key surrounded by {@code ???}
@@ -114,47 +101,47 @@ public class I18NBundle {
 		exceptionOnMissingKey = enabled;
 	}
 
-	/** Creates a new bundle using the specified <code>baseFileHandle</code>, the default locale and the default encoding "UTF-8".
+	/** Creates a new bundle using the specified {@code baseFileHandle}, the default locale and the default encoding "UTF-8".
 	 * 
 	 * @param baseFileHandle the file handle to the base of the bundle
-	 * @exception NullPointerException if <code>baseFileHandle</code> is <code>null</code>
+	 * @exception NullPointerException if {@code baseFileHandle} is {@code null}
 	 * @exception MissingResourceException if no bundle for the specified base file handle can be found
 	 * @return a bundle for the given base file handle and the default locale */
 	public static I18NBundle createBundle (FileHandle baseFileHandle) {
 		return createBundleImpl(baseFileHandle, Locale.getDefault(), DEFAULT_ENCODING);
 	}
 
-	/** Creates a new bundle using the specified <code>baseFileHandle</code> and <code>locale</code>; the default encoding "UTF-8"
+	/** Creates a new bundle using the specified {@code baseFileHandle} and {@code locale}; the default encoding "UTF-8"
 	 * is used.
 	 * 
 	 * @param baseFileHandle the file handle to the base of the bundle
 	 * @param locale the locale for which a bundle is desired
 	 * @return a bundle for the given base file handle and locale
-	 * @exception NullPointerException if <code>baseFileHandle</code> or <code>locale</code> is <code>null</code>
+	 * @exception NullPointerException if {@code baseFileHandle} or {@code locale} is {@code null}
 	 * @exception MissingResourceException if no bundle for the specified base file handle can be found */
 	public static I18NBundle createBundle (FileHandle baseFileHandle, Locale locale) {
 		return createBundleImpl(baseFileHandle, locale, DEFAULT_ENCODING);
 	}
 
-	/** Creates a new bundle using the specified <code>baseFileHandle</code> and <code>encoding</code>; the default locale is used.
+	/** Creates a new bundle using the specified {@code baseFileHandle} and {@code encoding}; the default locale is used.
 	 * 
 	 * @param baseFileHandle the file handle to the base of the bundle
 	 * @param encoding the character encoding
 	 * @return a bundle for the given base file handle and locale
-	 * @exception NullPointerException if <code>baseFileHandle</code> or <code>encoding</code> is <code>null</code>
+	 * @exception NullPointerException if {@code baseFileHandle} or {@code encoding} is {@code null}
 	 * @exception MissingResourceException if no bundle for the specified base file handle can be found */
 	public static I18NBundle createBundle (FileHandle baseFileHandle, String encoding) {
 		return createBundleImpl(baseFileHandle, Locale.getDefault(), encoding);
 	}
 
-	/** Creates a new bundle using the specified <code>baseFileHandle</code>, <code>locale</code> and <code>encoding</code>.
+	/** Creates a new bundle using the specified {@code baseFileHandle}, {@code locale} and {@code encoding}.
 	 * 
 	 * @param baseFileHandle the file handle to the base of the bundle
 	 * @param locale the locale for which a bundle is desired
 	 * @param encoding the character encoding
 	 * @return a bundle for the given base file handle and locale
-	 * @exception NullPointerException if <code>baseFileHandle</code>, <code>locale</code> or <code>encoding</code> is
-	 *               <code>null</code>
+	 * @exception NullPointerException if {@code baseFileHandle}, {@code locale} or {@code encoding} is
+	 *               {@code null}
 	 * @exception MissingResourceException if no bundle for the specified base file handle can be found */
 	public static I18NBundle createBundle (FileHandle baseFileHandle, Locale locale, String encoding) {
 		return createBundleImpl(baseFileHandle, locale, encoding);
@@ -163,7 +150,7 @@ public class I18NBundle {
 	private static I18NBundle createBundleImpl (FileHandle baseFileHandle, Locale locale, String encoding) {
 		if (baseFileHandle == null || locale == null || encoding == null) throw new NullPointerException();
 
-		I18NBundle bundle = null;
+		I18NBundle bundle;
 		I18NBundle baseBundle = null;
 		Locale targetLocale = locale;
 		do {
@@ -175,7 +162,7 @@ public class I18NBundle {
 
 			// Check the loaded bundle (if any)
 			if (bundle != null) {
-				Locale bundleLocale = bundle.getLocale(); // WTH? GWT can't access bundle.locale directly
+				Locale bundleLocale = bundle.locale;
 				boolean isBaseBundle = bundleLocale.equals(ROOT_LOCALE);
 
 				if (!isBaseBundle || bundleLocale.equals(locale)) {
@@ -211,24 +198,21 @@ public class I18NBundle {
 		return bundle;
 	}
 
-	/** Returns a <code>List</code> of <code>Locale</code>s as candidate locales for the given <code>locale</code>. This method is
-	 * called by the <code>createBundle</code> factory method each time the factory method tries finding a resource bundle for a
-	 * target <code>Locale</code>.
-	 * 
-	 * <p>
-	 * The sequence of the candidate locales also corresponds to the runtime resource lookup path (also known as the <I>parent
-	 * chain</I>), if the corresponding resource bundles for the candidate locales exist and their parents are not defined by
+	/** Returns a {@code List} of {@code Locale}s as candidate locales for the given {@code locale}. This method is
+	 * called by the {@code createBundle} factory method each time the factory method tries finding a resource bundle for a
+	 * target {@code Locale}.
+	 * <br>
+	 * The sequence of the candidate locales also corresponds to the runtime resource lookup path (also known as the <i>parent
+	 * chain</i>), if the corresponding resource bundles for the candidate locales exist and their parents are not defined by
 	 * loaded resource bundles themselves. The last element of the list is always the {@linkplain Locale#ROOT root locale}, meaning
 	 * that the base bundle is the terminal of the parent chain.
-	 * 
-	 * <p>
-	 * If the given locale is equal to <code>Locale.ROOT</code> (the root locale), a <code>List</code> containing only the root
-	 * <code>Locale</code> is returned. In this case, the <code>createBundle</code> factory method loads only the base bundle as
+	 * <br>
+	 * If the given locale is equal to {@code Locale.ROOT} (the root locale), a {@code List} containing only the root
+	 * {@code Locale} is returned. In this case, the {@code createBundle} factory method loads only the base bundle as
 	 * the resulting resource bundle.
-	 * 
-	 * <p>
-	 * This implementation returns a <code>List</code> containing <code>Locale</code>s in the following sequence:
-	 * 
+	 * <br>
+	 * This implementation returns a {@code List} containing {@code Locale}s in the following sequence:
+	 *
 	 * <pre>
 	 *     Locale(language, country, variant)
 	 *     Locale(language, country)
@@ -236,12 +220,11 @@ public class I18NBundle {
 	 *     Locale.ROOT
 	 * </pre>
 	 * 
-	 * where <code>language</code>, <code>country</code> and <code>variant</code> are the language, country and variant values of
-	 * the given <code>locale</code>, respectively. Locales where the final component values are empty strings are omitted.
-	 * 
-	 * <p>
-	 * For example, if the given base name is "Messages" and the given <code>locale</code> is
-	 * <code>Locale("ja",&nbsp;"",&nbsp;"XX")</code>, then a <code>List</code> of <code>Locale</code>s:
+	 * where {@code language}, {@code country} and {@code variant} are the language, country and variant values of
+	 * the given {@code locale}, respectively. Locales where the final component values are empty strings are omitted.
+	 * <br>
+	 * For example, if the given base name is "Messages" and the given {@code locale} is
+	 * {@code Locale("ja", "", "XX")}, then a {@code List} of {@code Locale}s:
 	 * 
 	 * <pre>
 	 *     Locale("ja", "", "XX")
@@ -249,7 +232,7 @@ public class I18NBundle {
 	 *     Locale.ROOT
 	 * </pre>
 	 * 
-	 * is returned. And if the resource bundles for the "ja" and "" <code>Locale</code>s are found, then the runtime resource
+	 * is returned. And if the resource bundles for the "ja" and "" {@code Locale}s are found, then the runtime resource
 	 * lookup path (parent chain) is:
 	 * 
 	 * <pre>
@@ -257,8 +240,8 @@ public class I18NBundle {
 	 * </pre>
 	 * 
 	 * @param locale the locale for which a resource bundle is desired
-	 * @return a <code>List</code> of candidate <code>Locale</code>s for the given <code>locale</code>
-	 * @exception NullPointerException if <code>locale</code> is <code>null</code> */
+	 * @return a {@code List} of candidate {@code Locale}s for the given {@code locale}
+	 * @exception NullPointerException if {@code locale} is {@code null} */
 	private static List<Locale> getCandidateLocales (Locale locale) {
 		String language = locale.getLanguage();
 		String country = locale.getCountry();
@@ -278,19 +261,18 @@ public class I18NBundle {
 		return locales;
 	}
 
-	/** Returns a <code>Locale</code> to be used as a fallback locale for further bundle searches by the <code>createBundle</code>
+	/** Returns a {@code Locale} to be used as a fallback locale for further bundle searches by the {@code createBundle}
 	 * factory method. This method is called from the factory method every time when no resulting bundle has been found for
-	 * <code>baseFileHandler</code> and <code>locale</code>, where locale is either the parameter for <code>createBundle</code> or
+	 * {@code baseFileHandler} and {@code locale}, where locale is either the parameter for {@code createBundle} or
 	 * the previous fallback locale returned by this method.
+	 * <br>
+	 * This method returns the {@linkplain Locale#getDefault() default {@code Locale}} if the given {@code locale} isn't
+	 * the default one. Otherwise, {@code null} is returned.
 	 * 
-	 * <p>
-	 * This method returns the {@linkplain Locale#getDefault() default <code>Locale</code>} if the given <code>locale</code> isn't
-	 * the default one. Otherwise, <code>null</code> is returned.
-	 * 
-	 * @param locale the <code>Locale</code> for which <code>createBundle</code> has been unable to find any resource bundles
+	 * @param locale the {@code Locale} for which {@code createBundle} has been unable to find any resource bundles
 	 *           (except for the base bundle)
-	 * @return a <code>Locale</code> for the fallback search, or <code>null</code> if no further fallback search is needed.
-	 * @exception NullPointerException if <code>locale</code> is <code>null</code> */
+	 * @return a {@code Locale} for the fallback search, or {@code null} if no further fallback search is needed.
+	 * @exception NullPointerException if {@code locale} is {@code null} */
 	private static Locale getFallbackLocale (Locale locale) {
 		Locale defaultLocale = Locale.getDefault();
 		return locale.equals(defaultLocale) ? null : defaultLocale;
@@ -348,25 +330,24 @@ public class I18NBundle {
 	 * @param reader the reader
 	 * @throws IOException if an error occurred when reading from the input stream. */
 	private void load (Reader reader) throws IOException {
-		properties = new ObjectObjectMap<>();
+		properties = new ObjectObjectOrderedMap<>();
 		NotProperties.load(properties, reader);
 	}
 
-	/** Converts the given <code>baseFileHandle</code> and <code>locale</code> to the corresponding file handle.
-	 * 
-	 * <p>
-	 * This implementation returns the <code>baseFileHandle</code>'s sibling with following value:
+	/** Converts the given {@code baseFileHandle} and {@code locale} to the corresponding file handle.
+	 * <br>
+	 * This implementation returns the {@code baseFileHandle}'s sibling with following value:
 	 * <br>
 	 * {@code baseFileHandle.name() + "_" + language + "_" + country + "_" + variant + ".properties"}
 	 * <br>
-	 * where <code>language</code>, <code>country</code> and <code>variant</code> are the language, country and variant values of
-	 * <code>locale</code>, respectively. Final component values that are empty Strings are omitted along with the preceding '_'.
-	 * If all the values are empty strings, then <code>baseFileHandle.name()</code> is returned with ".properties" appended.
+	 * where {@code language}, {@code country} and {@code variant} are the language, country and variant values of
+	 * {@code locale}, respectively. Final component values that are empty Strings are omitted along with the preceding '_'.
+	 * If all the values are empty strings, then {@code baseFileHandle.name()} is returned with ".properties" appended.
 	 * 
 	 * @param baseFileHandle the file handle to the base of the bundle
 	 * @param locale the locale for which a resource bundle should be loaded
 	 * @return the file handle for the bundle
-	 * @exception NullPointerException if <code>baseFileHandle</code> or <code>locale</code> is <code>null</code> */
+	 * @exception NullPointerException if {@code baseFileHandle} or {@code locale} is {@code null} */
 	private static FileHandle toFileHandle (FileHandle baseFileHandle, Locale locale) {
 		StringBuilder sb = new StringBuilder(baseFileHandle.name());
 		if (!locale.equals(ROOT_LOCALE)) {
@@ -391,7 +372,7 @@ public class I18NBundle {
 		return baseFileHandle.sibling(sb.append(".properties").toString());
 	}
 
-	/** Returns the locale of this bundle. This method can be used after a call to <code>createBundle()</code> to determine whether
+	/** Returns the locale of this bundle. This method can be used after a call to {@code createBundle()} to determine whether
 	 * the resource bundle returned really corresponds to the requested locale or is a fallback.
 	 * 
 	 * @return the locale of this bundle */
@@ -399,18 +380,20 @@ public class I18NBundle {
 		return locale;
 	}
 
-	/** Sets the bundle locale. This method is private because a bundle can't change the locale during its life.
+	/**
+	 * Sets the bundle locale. This method is private because a bundle can't change the locale during its life.
 	 * 
-	 * @param locale */
+	 * @param locale a non-null Locale for this to use for everything from now on
+	 */
 	private void setLocale (Locale locale) {
 		this.locale = locale;
-		this.formatter = new TextFormatter(locale, !simpleFormatter);
+		this.formatter = new TextFormatter(locale);
 	}
 
 	/** Gets a string for the given key from this bundle or one of its parents.
 	 * 
 	 * @param key the key for the desired string
-	 * @exception NullPointerException if <code>key</code> is <code>null</code>
+	 * @exception NullPointerException if {@code key} is {@code null}
 	 * @exception MissingResourceException if no string for the given key can be found and {@link #getExceptionOnMissingKey()}
 	 *               returns {@code true}
 	 * @return the string for the given key or the key surrounded by {@code ???} if it cannot be found and
@@ -429,7 +412,8 @@ public class I18NBundle {
 		return result;
 	}
 
-	/** Gets a key set of loaded properties. Keys will be copied into a new set and returned.
+	/** Gets an ordered key set of loaded properties. The keys from all loaded properties will be copied into a new
+	 *  {@link ObjectOrderedSet} and returned.
 	 *
 	 * @return a key set of loaded properties. Never null, might be an empty set */
 	public ObjectOrderedSet<String> keys () {
@@ -441,7 +425,7 @@ public class I18NBundle {
 	 * 
 	 * @param key the key for the desired string
 	 * @param args the arguments to be replaced in the string associated to the given key.
-	 * @exception NullPointerException if <code>key</code> is <code>null</code>
+	 * @exception NullPointerException if {@code key} is {@code null}
 	 * @exception MissingResourceException if no string for the given key can be found
 	 * @return the string for the given key formatted with the given arguments */
 	public String format (String key, Object... args) {
@@ -451,7 +435,8 @@ public class I18NBundle {
 	/** Sets the value of all localized strings to String placeholder so hardcoded, unlocalized values can be easily spotted. The
 	 * I18NBundle won't be able to reset values after calling debug and should only be using during testing.
 	 * 
-	 * @param placeholder */
+	 * @param placeholder the String that will replace every value in the loaded properties
+	 */
 	public void debug (String placeholder) {
 		for (String s : properties.keySet()) {
 			properties.put(s, placeholder);
