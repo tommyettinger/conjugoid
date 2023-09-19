@@ -340,11 +340,11 @@ public class I18NBundle {
 	 * <br>
 	 * This implementation returns the {@code baseFileHandle}'s sibling with following value:
 	 * <br>
-	 * {@code baseFileHandle.name() + "_" + language + "_" + country + "_" + variant + ".properties"}
+	 * {@code baseFileHandle.name() + "_" + language + "_" + country + "_" + variant + ".txt"}
 	 * <br>
 	 * where {@code language}, {@code country} and {@code variant} are the language, country and variant values of
 	 * {@code locale}, respectively. Final component values that are empty Strings are omitted along with the preceding '_'.
-	 * If all the values are empty strings, then {@code baseFileHandle.name()} is returned with ".properties" appended.
+	 * If all the values are empty strings, then {@code baseFileHandle.name()} is returned with ".txt" appended.
 	 * 
 	 * @param baseFileHandle the file handle to the base of the bundle
 	 * @param locale the locale for which a resource bundle should be loaded
@@ -371,7 +371,7 @@ public class I18NBundle {
 				}
 			}
 		}
-		return baseFileHandle.sibling(sb.append(".properties").toString());
+		return baseFileHandle.sibling(sb.append(".txt").toString());
 	}
 
 	/** Returns the locale of this bundle. This method can be used after a call to {@code createBundle()} to determine whether
