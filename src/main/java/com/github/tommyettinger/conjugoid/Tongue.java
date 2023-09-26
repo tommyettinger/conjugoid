@@ -8,18 +8,26 @@ import java.util.Locale;
 
 /**
  * Represents a natural language or some related concept, like barking for dogs or meowing for cats.
+ * <br>
+ * Example syntax playground:
+ * <br>
+ * The goblin@1s slash@1$$ @2me with @1my wicked blade@1s!
+ * The goblin slashes you with her wicked blade!
+ * The goblins slash you with their wicked blades!
  */
 public class Tongue {
     public final Locale locale;
+    public final String tag;
 
     public final ObjectObjectMap<String, Pronoun> pronouns = new ObjectObjectMap<>(16);
 
     public Tongue() {
-        this(new Locale("en__dog")); // woof, woof! let's see if this works!
+        this(new Locale("en__puppy")); // woof, woof! let's see if this works!
     }
 
     public Tongue(Locale locale) {
         this.locale = locale;
+        tag = locale.toLanguageTag();
     }
 
     public Tongue registerPronoun(Pronoun p) {
@@ -27,8 +35,16 @@ public class Tongue {
         return this;
     }
 
+    public static final ObjectObjectOrderedMap<String, Tongue> REGISTRY = new ObjectObjectOrderedMap<>(16);
+
+    static {
+        Tongue us = new Tongue(Locale.US);
+        us.registerPronoun(new Pronoun()); // t3s
+        REGISTRY.put(us.tag, us);
+    }
+
     public static class Pronoun {
-        public final ObjectObjectOrderedMap<String, ObjToSameFunction<String>> substitutions = new ObjectObjectOrderedMap<>(32);
+        public final CaselessOrderedMap<ObjToSameFunction<String>> substitutions = new CaselessOrderedMap<>(32);
         public final String tag;
         public Pronoun addSubstitutions(String... args){
             substitutions.ensureCapacity(substitutions.size() + (args.length >>> 1));
@@ -44,7 +60,7 @@ public class Tongue {
         public Pronoun() {
             this("t3s"); // they/them, 3rd-person, singular
             addSubstitutions("i", "they", "me", "them", "my", "their", "mine", "theirs", "myself", "themself",
-                    "s", "", "es", "", "sss", "y", "usi", "us", "fves", "f",
+                    "s", "", "ss", "", "sss", "y", "usi", "us", "fves", "f",
                     "$", "", "$$", "", "$$$", "y");
             substitutions.put("name", s -> s);
             substitutions.put("name_s", s -> s.isEmpty() ? "" : s.endsWith("s") ? s + '\'' : s + "'s");
